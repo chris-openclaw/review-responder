@@ -1,6 +1,6 @@
 ---
 name: review-responder
-version: 2.0.0
+version: "2.0.0"
 description: "Use this skill when monitoring or responding to Google Business Profile reviews. Key triggers: 'check reviews,' 'new review came in,' 'draft a reply,' 'respond to that review,' 'approve the draft,' 'post the reply,' 'review approval,' 'Google review,' 'business profile review,' 'reply to a 5-star,' 'how do I handle a bad review,' 'HIPAA-safe review reply,' 'medical practice reviews,' or referencing a specific reviewer by name. Covers: scheduled review checks across multiple clients, tone-matched response drafting by star rating, channel-agnostic approval flow (Telegram, email, web dashboard, or in-thread chat), industry compliance profiles (medical/HIPAA, legal, restaurant, retail), and operator-pattern learning."
 metadata:
   openclaw:
