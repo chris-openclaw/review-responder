@@ -4,6 +4,17 @@ All notable changes to this skill will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this skill adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] — 2026-06-08
+
+### Added
+- **Privacy and Data Handling** section in SKILL.md describing the real network surface (Google Business Profile API v4, Google OAuth token endpoint, configured approval channel), credential storage (operator-owned OAuth credentials per client in `clients_dir`), and hard guardrails (no auto-posting, no PHI in public replies, no credential leakage, no bulk export)
+- **Permissions and Privacy** section in README.md so operators see the full network surface, credential storage posture, hard guardrails, and the compliance scope (HIPAA-aware drafting, NOT a HIPAA-certified workflow) before installing
+
+### Changed
+- Reworded the `medical` industry profile from "HIPAA-safe" to "HIPAA-aware drafting" to accurately describe the constraint (avoids PHI in public reply text) without implying a regulatory certification this skill cannot provide. CHANGELOG references to "HIPAA-safe" updated in the 2.0.0 entry's description of this profile for consistency
+- Narrowed the activation triggers in the `description` frontmatter to require an explicit configured-client workflow (named client, named reviewer, specific approval/post action), with a "do NOT trigger" guardrail for casual review chat, review-writing requests, and marketing-strategy questions
+- Unquoted the `version` field in frontmatter (matches updated ClawHub CLI semver requirements)
+
 ## [2.0.0] — 2026-05-12
 
 ### Added

@@ -1,7 +1,7 @@
 ---
 name: review-responder
-version: "2.0.0"
-description: "Use this skill when monitoring or responding to Google Business Profile reviews. Key triggers: 'check reviews,' 'new review came in,' 'draft a reply,' 'respond to that review,' 'approve the draft,' 'post the reply,' 'review approval,' 'Google review,' 'business profile review,' 'reply to a 5-star,' 'how do I handle a bad review,' 'HIPAA-safe review reply,' 'medical practice reviews,' or referencing a specific reviewer by name. Covers: scheduled review checks across multiple clients, tone-matched response drafting by star rating, channel-agnostic approval flow (Telegram, email, web dashboard, or in-thread chat), industry compliance profiles (medical/HIPAA, legal, restaurant, retail), and operator-pattern learning."
+version: 2.0.1
+description: "Use this skill when an operator is actively running the Google Business Profile review-response workflow for one of their configured client accounts. Specific triggers: 'check for new reviews,' 'run the review check for [client],' 'new review came in for [client],' 'draft a reply to the [reviewer] review,' 'approve the draft for [reviewer/client],' 'post the reply for [review id],' 'show pending review approvals,' 'show me the pending reviews,' or 'apply the [medical/legal/restaurant/retail/general] industry profile to this draft.' Do NOT trigger on: general questions about how to handle reviews, casual mentions of Google reviews, marketing strategy chat, requests to write a review (versus reply to one), or any workflow where no configured client exists. Covers: scheduled checks against Google Business Profile API for configured clients, star-rating-matched draft replies with industry-aware drafting constraints (medical/HIPAA-aware, legal, restaurant, retail), and an approval gate across Telegram, email, webhook, or in-chat channels. Drafts are NEVER auto-posted; operator approval is required before any reply is published. See Privacy and Data Handling for credential and posting scope."
 metadata:
   openclaw:
     emoji: ⭐
@@ -166,7 +166,9 @@ When the operator responds to a draft (via any channel):
 
 Industry profiles enforce constraints and tone defaults appropriate to specific business types. Apply the profile from the client config (or `default_industry`) on every draft.
 
-### `medical` (HIPAA-safe)
+### `medical` (HIPAA-aware drafting)
+
+**Note on terminology**: this profile applies HIPAA-aware drafting constraints — it instructs the assistant to avoid referencing PHI in public review replies. It does not certify the operator's overall workflow as HIPAA-compliant. Covered entities are responsible for their own compliance program; this skill is one input.
 
 **Hard rules** (never violate, regardless of star rating):
 - NEVER reference or confirm any medical conditions, diagnoses, treatments, medications, procedures, or health details, even if the reviewer mentioned them publicly
@@ -266,3 +268,36 @@ python3 {script_path} pending
 - For Telegram: a Telegram channel/chat configured and a working bot token
 - For email: SMTP credentials or a relay
 - For webhook: an HTTPS endpoint that accepts POST and returns the decision JSON
+
+---
+
+## Privacy and Data Handling
+
+Unlike most skills in this catalog, this one ships executable Python code (`gbp_reviews.py`, `get_client_token.py`, `oauth_server.py`) that makes real network calls and posts content publicly to Google Business Profile. Be honest with the user about that scope.
+
+**What the skill does over the network**
+
+- Calls Google's My Business API v4 (`mybusiness.googleapis.com`) to fetch unanswered reviews and to post replies on behalf of the operator's configured clients. These calls use the client's own OAuth credentials and refresh tokens, which the operator obtains and stores locally.
+- Sends draft approval messages through whichever `approval_channel` the operator configured (Telegram, email, webhook, or in-chat). Each of those uses the operator's own credentials and infrastructure; the skill does not bundle credentials or route through any author-controlled service.
+- Posts the approved reply text to the corresponding Google review only after explicit operator approval. Drafts are never auto-posted.
+
+**Credentials and local data**
+
+- Per-client OAuth credentials (`oauth_client_id`, `oauth_client_secret`, `refresh_token`) live in JSON files under `clients_dir`. These are the operator's credentials for the operator's own clients. The skill does not transmit them anywhere except to Google's token endpoint (`https://oauth2.googleapis.com/token`) for the standard OAuth refresh flow.
+- Review polling state (`review_log.json`) and pending drafts (`pending/`) are stored locally under the skill's directory.
+- Approval-pattern learning state (`memory_file`, default `approval-patterns.json`) is stored locally.
+
+**Hard guardrails**
+
+- **No auto-posting.** Every reply requires an explicit operator approval through one of the configured channels. The skill must not post a reply without that approval.
+- **No PHI in public replies.** When the active client's industry profile is `medical`, the assistant must never reference health conditions, treatments, diagnoses, or patient status in the public reply — even if the reviewer disclosed those details themselves.
+- **No exfiltration of credentials.** The assistant must never quote, log, summarize, or transmit `oauth_client_secret`, `refresh_token`, or any other credential field into approval messages, drafts, logs, or chat outputs.
+- **No bulk export of client data.** The skill is for the operator's own ongoing review workflow. It must not dump consolidated client lists, credentials, or review histories into external destinations without explicit operator instruction for that specific export.
+
+**No telemetry**
+
+The skill does not collect or transmit usage data, client identifiers, review content, or any other information back to its author, ClawHub, or any third party. (The Google API, Telegram, your SMTP relay, and any webhook target will each have their own logs — consult those services' policies.)
+
+**Compliance scope**
+
+The `medical` industry profile applies HIPAA-aware drafting constraints to public review replies. It does not certify the operator's overall workflow as HIPAA-compliant, and it does not turn this skill into a HIPAA-covered service. Operators in regulated industries (medical, legal, financial) remain responsible for their own compliance programs and should review the constraints in this skill against their own policies before using it in production.
