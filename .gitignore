@@ -1,12 +1,10 @@
-# Client configs (contain OAuth tokens and secrets)
-clients/*.json
+# Credentials and review data: never commit
+clients/*
 !clients/_template.json
-
-# Auto-generated runtime files
-review_log.json
 pending/
-
-# Python
+review_log.json
+approval-patterns.json
+.tmp-*.json
 __pycache__/
 *.pyc
-*.pyo
+.env
