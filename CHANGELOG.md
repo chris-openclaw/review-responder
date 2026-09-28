@@ -4,6 +4,43 @@ All notable changes to this skill will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this skill adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] — 2026-09-28
+
+Security release addressing ClawHub security audit findings. Upgrading from 2.0.x requires a few manual steps; see "Upgrading from 2.0" in SETUP.md.
+
+### Security
+- **Approval gate is now enforced in code.** Posting is a three-step flow (`draft` → `approve` → `reply`). `gbp_reviews.py reply` refuses to post unless an approval has been recorded for that exact review, and posts only the approved text. It no longer accepts reply text as an argument.
+- **OAuth app credentials moved to environment variables** (`GBP_OAUTH_CLIENT_ID`, `GBP_OAUTH_CLIENT_SECRET`). They are no longer stored in per-client files or edited into scripts.
+- **Credential and review files are written owner-only** (files 0600, folders 0700) via atomic writes. Existing client files with looser permissions are tightened automatically on load.
+- **Refresh tokens are never printed.** `get_client_token.py` writes the token directly to the client's config file.
+- **Client and review IDs are validated** (lowercase slugs / safe characters), so no input can write files outside `clients/` or `pending/`.
+- **Onboarding server hardened.** `oauth_server.py` now refuses plain `http://` (except localhost), listens on 127.0.0.1 by default for use behind an HTTPS reverse proxy, requires a secret `GBP_ONBOARD_TOKEN` in every link, verifies OAuth state, HTML-escapes output, no longer reveals file paths, and shuts itself down after 60 minutes. `OAUTHLIB_INSECURE_TRANSPORT` is no longer set for public servers.
+- **Prompt-injection guidance.** SKILL.md and HEARTBEAT.md now treat review content as untrusted data and accept approvals only from the operator's configured channel.
+- API requests now use timeouts, and error output no longer echoes raw API response bodies.
+
+### Added
+- `draft`, `approve`, and `skip` commands in `gbp_reviews.py`; `pending` now shows each review's status
+- `rr_common.py` shared helper module (credentials, permissions, validation)
+- `get_client_token.py --client` and `--business-name` options, plus automatic account and location ID lookup
+- **Scope and Permissions** section in SKILL.md listing every command, network destination, and file the skill touches
+- `metadata.openclaw` declarations for required binaries, environment variables, and config paths
+- **Security** and **Upgrading from 2.0** sections in SETUP.md, including HTTPS setup with Caddy
+- `.gitignore` excluding `clients/`, `pending/`, `review_log.json`, and approval-pattern data
+- Secret-free `clients/_template.json`
+
+### Changed
+- **BREAKING**: `gbp_reviews.py reply` no longer takes `--reply "text"`. Use `draft`, `approve`, then `reply`.
+- **BREAKING**: `oauth_client_id` and `oauth_client_secret` in client config files are no longer read. Set the environment variables instead.
+- **BREAKING**: `get_client_token.py` now requires `--client`, and `oauth_server.py` requires `GBP_PUBLIC_URL` and `GBP_ONBOARD_TOKEN`.
+- HEARTBEAT.md now uses the configured approval channel instead of assuming Telegram, and the heartbeat is limited to `check`, `draft`, and `pending`
+- `description` frontmatter now discloses local token storage, outbound approval messages, public posting, and the optional onboarding server
+- Minimum Python version is now 3.9
+
+### Fixed
+- Google API URLs were built as `accounts/accounts/...` when `account_id` or `location_id` included its prefix, as the setup guide instructed
+- `oauth_server.py` could fail the token exchange on current `google-auth-oauthlib` releases because the PKCE code verifier wasn't carried from the start of sign-in to the callback
+- The remote onboarding server wrote the client name from the URL straight into a file path
+
 ## [2.0.1] — 2026-06-08
 
 ### Added
